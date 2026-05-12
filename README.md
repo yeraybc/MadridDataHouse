@@ -54,10 +54,7 @@ Test I de Moran sobre residuos XGBoost: **-0.03** (sin autocorrelación espacial
 
 👉 **[Prueba la aplicación MadridDataHouse aquí](https://yeraybc.shinyapps.io/MadridDataHouse/)**
 
-<div align="center">
-  <img src="assets/<img width="737" height="855" alt="Captura de pantalla 2026-05-12 a las 16 29 19" src="https://github.com/user-attachments/assets/915a6494-5b34-4067-b7b9-2a3fbf1cddbe" />
-" alt="Demo MadridDataHouse" width="600">
-</div>
+![Demo MadridDataHouse](assets/demo_app.png)
 
 ## Stack técnico
 
