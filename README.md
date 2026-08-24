@@ -29,6 +29,12 @@ El objetivo fue resolver eso: construir una plataforma que estimase el precio de
 
 > **💡 Hallazgo principal:** la variable con mayor poder predictivo no es la superficie, ni los baños, ni el ascensor. Es el precio de las viviendas del entorno. Tus vecinos determinan el valor de tu piso más que las características de tu propia casa.
 
+Y no es una intuición: es lo que obliga a plantear el problema de otra manera. El precio de una vivienda no es independiente del de sus vecinas —el test **I de Moran da 0.50 con p < 0.001**—, así que el supuesto de independencia entre observaciones que sostiene un OLS no se cumple aquí. Ignorarlo no solo desaprovecha información: deja estructura sistemática en los residuos y vuelve poco fiable la inferencia.
+
+De ahí el enfoque. La localización se trata como señal y no como ruido: una matriz de pesos espaciales por KNN (k=8) define quién es vecino de quién, y los **retardos de vecindario entran como predictores explícitos** —el precio del entorno, pero también su criminalidad, renta e inmigración—. Sobre esa base se contrastan cuatro familias: OLS como referencia, SAR para modelar la dependencia de forma paramétrica, y Random Forest y XGBoost para la no-linealidad. Un Kriging Universal sirve de contraste geoestadístico independiente.
+
+El cierre del argumento está en los residuos. Si el planteamiento es correcto, la estructura espacial debería acabar dentro del modelo y no fuera. La I de Moran sobre los residuos del modelo final es **−0.03**: absorbida.
+
 ## App en producción
 
 👉 **[Prueba la aplicación MadridDataHouse aquí](https://yeraybc.shinyapps.io/MadridDataHouse/)**
@@ -68,7 +74,9 @@ MadridDataHouse/
 
 La separación `raw/` / `processed/` es la línea entre lo que es fuente y lo que es derivado: `data/raw/` solo contiene entradas versionadas, y todo lo que escribe el pipeline va a `data/processed/`.
 
-De esos artefactos **se versionan únicamente los que cargan las apps**, para que un clon pueda levantarlas sin ejecutar el pipeline entero. Los intermedios quedan fuera (ver [.gitignore](.gitignore)). Si ejecutas un script sin haber corrido los anteriores, la guarda de [utils_pipeline.R](R/utils_pipeline.R) aborta indicando qué artefactos faltan en vez de dar un error de fichero no encontrado.
+Los scripts se pasan el trabajo unos a otros mediante ficheros `.rds`: el `02` lee lo que dejó el `01`, y así hasta el final. Versionarlos todos habría hinchado el repositorio con datos regenerables; no versionar ninguno obliga a esperar media hora antes de poder abrir la app. El punto intermedio es lo que hay aquí: **al repositorio van los que las apps necesitan para arrancar**, y los intermedios se quedan fuera (ver [.gitignore](.gitignore)).
+
+¿Y si ejecutas un script suelto sin haber corrido los anteriores? [utils_pipeline.R](R/utils_pipeline.R) corta antes de empezar y te dice qué artefacto falta y cómo generarlo. Sin esa guarda, el error era un `cannot open the connection` a mitad del script.
 
 ## Fuente de datos
 
@@ -77,9 +85,7 @@ Datos de viviendas en Madrid con variables estructurales, socioeconómicas y de 
 - Variables de entorno: tasa de criminalidad, inmigración, población infantil, jubilados, proximidad a zonas comerciales e históricas
 - Cartografía: shapefile de barrios y distritos de Madrid, del [Geoportal del Ayuntamiento de Madrid](https://geoportal.madrid.es/)
 
-Los `.zip` originales del Geoportal están versionados en [data/raw/cartography/](data/raw/cartography/), así que el proyecto no depende de que esa URL siga viva. El script `01` los resuelve en este orden: usa los `.shp` si están, si no descomprime los `.zip` del repositorio (sin red), y solo descarga del Geoportal si tampoco están. Si eso falla, el error indica cómo restaurarlos.
-
-Cada `.zip` se verifica contra los SHA-256 de [checksums.txt](data/raw/cartography/checksums.txt). Si una descarga futura devolviese datos distintos — el Ayuntamiento redibuja un límite administrativo, por ejemplo — el script avisa de que los resultados pueden diferir de los publicados aquí, en lugar de cambiarlos en silencio.
+Los `.zip` originales del Geoportal están versionados en [data/raw/cartography/](data/raw/cartography/), así que el proyecto no depende de que esa URL siga viva: el script `01` usa los shapefiles si están, los descomprime del repositorio si no, y solo sale a la red como último recurso. Cada `.zip` se contrasta además con su SHA-256 en [checksums.txt](data/raw/cartography/checksums.txt) — si el Ayuntamiento redibujara un límite administrativo, el script avisa en vez de cambiar los resultados en silencio.
 
 ## Metodología
 
