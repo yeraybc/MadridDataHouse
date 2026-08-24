@@ -1,4 +1,4 @@
-# 04_validacion.R — Validación
+# 04_validacion.R
 
 library(sf)
 library(tidyverse)
@@ -11,16 +11,21 @@ library(tmap)
 
 tmap_mode("plot")
 
+source("R/utils_pipeline.R")
+require_artifacts("train_sf_fase2.rds", "test_sf_fase2.rds", "W_listw.rds",
+                  "ols_model.rds", "sar_model.rds", "rf_model.rds", "xgb_model.rds",
+                  "variograma_ajustado.rds", "formula_kriging.rds")
+
 # Carga de modelos y datos de fases anteriores
-train_sf            <- readRDS("datos/train_sf_fase2.rds")
-test_sf             <- readRDS("datos/test_sf_fase2.rds")
-W                   <- readRDS("datos/W_listw.rds")
-ols_model           <- readRDS("datos/ols_model.rds")
-sar_model           <- readRDS("datos/sar_model.rds")
-rf_fit              <- readRDS("datos/rf_model.rds")
-xgb_fit             <- readRDS("datos/xgb_model.rds")
-variograma_ajustado <- readRDS("datos/variograma_ajustado.rds")
-formula_kriging     <- readRDS("datos/formula_kriging.rds")
+train_sf            <- readRDS("data/processed/train_sf_fase2.rds")
+test_sf             <- readRDS("data/processed/test_sf_fase2.rds")
+W                   <- readRDS("data/processed/W_listw.rds")
+ols_model           <- readRDS("data/processed/ols_model.rds")
+sar_model           <- readRDS("data/processed/sar_model.rds")
+rf_fit              <- readRDS("data/processed/rf_model.rds")
+xgb_fit             <- readRDS("data/processed/xgb_model.rds")
+variograma_ajustado <- readRDS("data/processed/variograma_ajustado.rds")
+formula_kriging     <- readRDS("data/processed/formula_kriging.rds")
 
 # Preparación del Test Set (Caja Fuerte)
 test_sf$x_utm <- st_coordinates(test_sf)[, 1]
@@ -59,11 +64,11 @@ evaluar_moran("OLS", resid(ols_model), W)
 evaluar_moran("XGBoost", results$log_price_obs - results$pred_xgb, W_test)
 
 # Validación cruzada de Kriging (10-fold)
-if (file.exists("datos/kriging_cv_gstat.rds")) {
-  krig_cv <- readRDS("datos/kriging_cv_gstat.rds")
+if (file.exists("data/processed/kriging_cv_gstat.rds")) {
+  krig_cv <- readRDS("data/processed/kriging_cv_gstat.rds")
 } else {
   krig_cv <- gstat::krige.cv(formula_kriging, train_sf, variograma_ajustado, nfold = 10)
-  saveRDS(krig_cv, "datos/kriging_cv_gstat.rds")
+  saveRDS(krig_cv, "data/processed/kriging_cv_gstat.rds")
 }
 
 # Consolidación de métricas finales (€/m²)
@@ -76,5 +81,5 @@ metricas_finales <- bind_rows(
 ) |> pivot_wider(names_from = .metric, values_from = .estimate)
 
 # Guardado de resultados de validación
-saveRDS(metricas_finales, "datos/metricas_finales.rds")
-saveRDS(test_sf,          "datos/test_sf_resultados.rds")
+saveRDS(metricas_finales, "data/processed/metricas_finales.rds")
+saveRDS(test_sf,          "data/processed/test_sf_resultados.rds")
