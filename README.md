@@ -58,7 +58,6 @@ MadridDataHouse/
 │   │   └── cartography/                # Shapefiles de barrios y distritos (Geoportal de Madrid)
 │   └── processed/                      # Artefactos que genera el pipeline
 ├── assets/                             # Imágenes del README
-├── archive/                            # Iteraciones descartadas y versiones previas del análisis
 ├── requirements.txt                    # Dependencias de R con versiones mínimas
 ├── setup.R                             # Prepara el entorno (verifica e instala dependencias)
 ├── deploy.R                            # Publica las apps en shinyapps.io
@@ -70,8 +69,6 @@ MadridDataHouse/
 La separación `raw/` / `processed/` es la línea entre lo que es fuente y lo que es derivado: `data/raw/` solo contiene entradas versionadas, y todo lo que escribe el pipeline va a `data/processed/`.
 
 De esos artefactos **se versionan únicamente los que cargan las apps**, para que un clon pueda levantarlas sin ejecutar el pipeline entero. Los intermedios quedan fuera (ver [.gitignore](.gitignore)). Si ejecutas un script sin haber corrido los anteriores, la guarda de [utils_pipeline.R](R/utils_pipeline.R) aborta indicando qué artefactos faltan en vez de dar un error de fichero no encontrado.
-
-La carpeta `archive/` conserva material de iteraciones anteriores del análisis, previas a la versión actual del pipeline. Se mantiene como registro del proceso, no forma parte del código en producción.
 
 ## Fuente de datos
 
