@@ -3,5 +3,26 @@
 .Rhistory
 .Rproj.user/
 Rplots.pdf
-*.rds
-*.tif
+rsconnect/
+
+# Artefactos del pipeline: se ignoran salvo los que cargan las apps, versionados
+# para que un clon pueda levantarlas sin ejecutar el pipeline entero.
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/train_sf_fase2.rds
+!data/processed/rf_model.rds
+!data/processed/xgb_model.rds
+!data/processed/metricas_finales.rds
+!data/processed/distritos_sf.rds
+!data/processed/barrios_sf.rds
+!data/processed/indice_precios_actuales.rds
+!data/processed/variograma_ajustado.rds
+!data/processed/formula_kriging.rds
+!data/processed/hull_concavo.rds
+!data/processed/metricas_kriging.rds
+!data/processed/kriging_raster_pred.tif
+!data/processed/kriging_raster_var.tif
+
+# Copias que deploy.R deja en el bundle de cada app
+apps/*/data/*.rds
+apps/*/data/*.tif

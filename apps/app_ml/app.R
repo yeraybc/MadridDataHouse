@@ -10,13 +10,12 @@ library(scales)
 
 # Carga de datos
 cargar_artefacto <- function(archivo) {
-  if (file.exists(paste0("datos/", archivo))) {
-    return(readRDS(paste0("datos/", archivo)))
-  } else if (file.exists(paste0("../datos/", archivo))) {
-    return(readRDS(paste0("../datos/", archivo)))
-  } else {
-    stop(paste("Error: No se encuentra", archivo))
+  rutas <- c(file.path("data", archivo), file.path("../../data/processed", archivo))
+  ruta  <- rutas[file.exists(rutas)][1]
+  if (is.na(ruta)) {
+    stop(paste("Error: No se encuentra", archivo, "ni en 'data/' ni en '../../data/processed/'"))
   }
+  readRDS(ruta)
 }
 
 train_sf  <- cargar_artefacto("train_sf_fase2.rds")

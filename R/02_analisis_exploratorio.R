@@ -1,4 +1,4 @@
-# 02_analisis_exploratorio.R — Análisis Exploratorio y de Dependencia
+# 02_analisis_exploratorio.R
 
 library(tidyverse)
 library(sf)
@@ -8,11 +8,15 @@ library(tmap)
 
 tmap_mode("plot")
 
+source("R/utils_pipeline.R")
+require_artifacts("train_sf.rds", "test_sf.rds", "W_listw.rds", "nb_w.rds",
+                  "barrios_sf.rds", "distritos_sf.rds")
+
 # Carga de datos preparados
-train_sf <- readRDS("datos/train_sf.rds")
-test_sf  <- readRDS("datos/test_sf.rds")
-W_listw  <- readRDS("datos/W_listw.rds")
-nb_w     <- readRDS("datos/nb_w.rds")
+train_sf <- readRDS("data/processed/train_sf.rds")
+test_sf <- readRDS("data/processed/test_sf.rds")
+W_listw <- readRDS("data/processed/W_listw.rds")
+nb_w <- readRDS("data/processed/nb_w.rds")
 
 # Imputación de valores ausentes (ZZZ)
 # Se asume que ZZZ equivale a la ausencia del extra o categoría base
@@ -29,7 +33,7 @@ imputar_zzz <- function(data) {
 }
 
 train_sf <- imputar_zzz(train_sf)
-test_sf  <- imputar_zzz(test_sf)
+test_sf <- imputar_zzz(test_sf)
 
 # Cálculo del retardo espacial (Lag) del precio
 train_sf$log_price_W <- lag.listw(W_listw, train_sf$log_price)
@@ -58,13 +62,18 @@ train_sf$lisa_cluster <- lmoran_sig |>
 
 # Visualización de clusters LISA
 map_lisa <- tm_shape(train_sf) +
-  tm_dots(fill = "lisa_cluster",
-          fill.scale = tm_scale_categorical(
-            values = c("High-High" = "#d7191c", "Low-Low" = "#2c7bb6",
-                       "High-Low" = "#fdae61", "Low-High"  = "#abd9e9",
-                       "No significativo" = "grey85")),
-          size = 0.05,
-          fill.legend = tm_legend(title = "Cluster LISA")) +
+  tm_dots(
+    fill = "lisa_cluster",
+    fill.scale = tm_scale_categorical(
+      values = c(
+        "High-High" = "#d7191c", "Low-Low" = "#2c7bb6",
+        "High-Low" = "#fdae61", "Low-High" = "#abd9e9",
+        "No significativo" = "grey85"
+      )
+    ),
+    size = 0.05,
+    fill.legend = tm_legend(title = "Cluster LISA")
+  ) +
   tm_title("Análisis LISA: Clusters espaciales de precio") +
   tm_layout(legend.outside = TRUE)
 
@@ -84,8 +93,8 @@ vario_emp <- variogram(formula_kriging, data = train_sf, cressie = TRUE)
 plot(vario_emp, main = "Semivariograma Empírico", xlab = "Distancia (m)", ylab = "Semivarianza")
 
 # Agregación de estadísticas por barrio para el Dashboard
-barrios_sf   <- readRDS("datos/barrios_sf.rds")
-distritos_sf <- readRDS("datos/distritos_sf.rds")
+barrios_sf <- readRDS("data/processed/barrios_sf.rds")
+distritos_sf <- readRDS("data/processed/distritos_sf.rds")
 
 train_barrios <- train_sf |>
   st_drop_geometry() |>
@@ -105,11 +114,14 @@ train_barrios <- train_sf |>
   st_as_sf()
 
 # Guardado de resultados de la Fase II
-saveRDS(vario_emp,       "datos/variograma_empirico.rds")
-saveRDS(formula_kriging, "datos/formula_kriging.rds")
-saveRDS(train_sf,        "datos/train_sf_fase2.rds")
-saveRDS(test_sf,         "datos/test_sf_fase2.rds")
-saveRDS(train_barrios,   "datos/estadisticas_barrios.rds")
+saveRDS(vario_emp, "data/processed/variograma_empirico.rds")
+
+# Sin vaciar su environment, la fórmula arrastra el dataset entero: 2.2 MB -> <1 KB
+environment(formula_kriging) <- baseenv()
+saveRDS(formula_kriging, "data/processed/formula_kriging.rds")
+saveRDS(train_sf, "data/processed/train_sf_fase2.rds")
+saveRDS(test_sf, "data/processed/test_sf_fase2.rds")
+saveRDS(train_barrios, "data/processed/estadisticas_barrios.rds")
 
 
 # Tests de calidad

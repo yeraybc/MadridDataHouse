@@ -11,14 +11,12 @@ library(tidyverse)
 
 # Función de carga
 cargar_artefacto <- function(archivo) {
-  if (file.exists(paste0("../datos/", archivo))) {
-    ruta <- paste0("../datos/", archivo)
-  } else if (file.exists(paste0("datos/", archivo))) {
-    ruta <- paste0("datos/", archivo)
-  } else {
-    stop(paste("ERROR CRÍTICO: No se encuentra", archivo, "ni en 'datos/' ni en '../datos/'"))
+  rutas <- c(file.path("data", archivo), file.path("../../data/processed", archivo))
+  ruta  <- rutas[file.exists(rutas)][1]
+  if (is.na(ruta)) {
+    stop(paste("ERROR CRÍTICO: No se encuentra", archivo, "ni en 'data/' ni en '../../data/processed/'"))
   }
-  
+
   if (grepl("\\.rds$", archivo)) return(readRDS(ruta))
   if (grepl("\\.tif$", archivo)) return(terra::rast(ruta))
 }
