@@ -5,7 +5,7 @@ library(raster)
 library(tidyverse)
 
 cargar_artefacto <- function(archivo) {
-  rutas <- c(paste0("../datos/", archivo), paste0("datos/", archivo))
+  rutas <- c(file.path("data", archivo), file.path("../../data/processed", archivo))
   ruta_real <- rutas[file.exists(rutas)][1]
   if (is.na(ruta_real)) stop(paste("ERROR: No se encuentra", archivo))
   if (grepl("\\.rds$", archivo)) return(readRDS(ruta_real))
