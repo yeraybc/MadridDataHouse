@@ -29,11 +29,11 @@ El objetivo fue resolver eso: construir una plataforma que estimase el precio de
 
 > **💡 Hallazgo principal:** la variable con mayor poder predictivo no es la superficie, ni los baños, ni el ascensor. Es el precio de las viviendas del entorno. Tus vecinos determinan el valor de tu piso más que las características de tu propia casa.
 
-Y no es una intuición: es lo que obliga a plantear el problema de otra manera. El precio de una vivienda no es independiente del de sus vecinas —el test **I de Moran da 0.50 con p < 0.001**—, así que el supuesto de independencia entre observaciones que sostiene un OLS no se cumple aquí. Ignorarlo no solo desaprovecha información: deja estructura sistemática en los residuos y vuelve poco fiable la inferencia.
+Esto obliga a plantear el problema de otra manera. El precio de una vivienda no es independiente del de sus vecinas, así que el supuesto de independencia entre observaciones que sostiene un OLS no se cumple aquí. Ignorarlo no solo desaprovecha información: deja estructura sistemática en los residuos y vuelve poco fiable la inferencia.
 
-De ahí el enfoque. La localización se trata como señal y no como ruido: una matriz de pesos espaciales por KNN (k=8) define quién es vecino de quién, y los **retardos de vecindario entran como predictores explícitos** —el precio del entorno, pero también su criminalidad, renta e inmigración—. Sobre esa base se contrastan cuatro familias: OLS como referencia, SAR para modelar la dependencia de forma paramétrica, y Random Forest y XGBoost para la no-linealidad. Un Kriging Universal sirve de contraste geoestadístico independiente.
-
-El cierre del argumento está en los residuos. Si el planteamiento es correcto, la estructura espacial debería acabar dentro del modelo y no fuera. La I de Moran sobre los residuos del modelo final es **−0.03**: absorbida.
+Así pues, la localización se trata como señal y NO como ruido: 
+- Se construye una matriz de pesos espaciales por KNN (k=8) que define quién es vecino de quién, y los **retardos de vecindario entran como predictores explícitos**: el precio del entorno, pero también su criminalidad, renta e inmigración.
+- Por otro lado, se contrastan cuatro familias: OLS como referencia, SAR para modelar la dependencia de forma paramétrica, y Random Forest y XGBoost para la no-linealidad. Un Kriging Universal sirve de contraste geoestadístico independiente.
 
 ## App en producción
 
@@ -72,11 +72,11 @@ MadridDataHouse/
 └── README.md
 ```
 
-La separación `raw/` / `processed/` es la línea entre lo que es fuente y lo que es derivado: `data/raw/` solo contiene entradas versionadas, y todo lo que escribe el pipeline va a `data/processed/`.
+La separación `raw/` / `processed/` es la línea entre lo que es fuente y lo que es derivado: `data/raw/` solo contiene entradas añadidas, y todo lo que escribe el pipeline va a `data/processed/`.
 
-Los scripts se pasan el trabajo unos a otros mediante ficheros `.rds`: el `02` lee lo que dejó el `01`, y así hasta el final. Versionarlos todos habría hinchado el repositorio con datos regenerables; no versionar ninguno obliga a esperar media hora antes de poder abrir la app. El punto intermedio es lo que hay aquí: **al repositorio van los que las apps necesitan para arrancar**, y los intermedios se quedan fuera (ver [.gitignore](.gitignore)).
+Los scripts se pasan el trabajo unos a otros mediante ficheros `.rds`: el `02` lee lo que dejó el `01`, y así hasta el final. Añadirlos todos habría inflado el repositorio con datos regenerables, por otro lado, no añadir ninguno obliga a esperar media hora antes de poder abrir la app. Así pues, me decanté por añadir al repositorio los que las apps necesitan para arrancar, dejando fuera los intermedios (ver [.gitignore](.gitignore)).
 
-¿Y si ejecutas un script suelto sin haber corrido los anteriores? [utils_pipeline.R](R/utils_pipeline.R) corta antes de empezar y te dice qué artefacto falta y cómo generarlo. Sin esa guarda, el error era un `cannot open the connection` a mitad del script.
+Si ejecutases un script suelto sin haber corrido los anteriores, [utils_pipeline.R](R/utils_pipeline.R) corta antes de empezar y te dice qué artefacto falta y cómo generarlo.
 
 ## Fuente de datos
 
@@ -85,32 +85,54 @@ Datos de viviendas en Madrid con variables estructurales, socioeconómicas y de 
 - Variables de entorno: tasa de criminalidad, inmigración, población infantil, jubilados, proximidad a zonas comerciales e históricas
 - Cartografía: shapefile de barrios y distritos de Madrid, del [Geoportal del Ayuntamiento de Madrid](https://geoportal.madrid.es/)
 
-Los `.zip` originales del Geoportal están versionados en [data/raw/cartography/](data/raw/cartography/), así que el proyecto no depende de que esa URL siga viva: el script `01` usa los shapefiles si están, los descomprime del repositorio si no, y solo sale a la red como último recurso. Cada `.zip` se contrasta además con su SHA-256 en [checksums.txt](data/raw/cartography/checksums.txt) — si el Ayuntamiento redibujara un límite administrativo, el script avisa en vez de cambiar los resultados en silencio.
+Los `.zip` originales del Geoportal están versionados en [data/raw/cartography/](data/raw/cartography/), así que el proyecto no depende de que esa URL siga viva: el script `01` usa los shapefiles si están, los descomprime del repositorio si no, y solo sale a la red como último recurso. Cada `.zip` se contrasta además con su SHA-256 en [checksums.txt](data/raw/cartography/checksums.txt), por lo que si el Ayuntamiento redibujara un límite administrativo, el script avisaría del cambio.
 
 ## Metodología
 
 1. **Preparación y análisis espacial:** imputación de valores ausentes, construcción del objeto espacial (`sf`), matriz de pesos espaciales por KNN (k=8).
 2. **EDA espacial:** test I de Moran (estadístico = 0.50, p < 0.001), análisis de clusters LISA (High-High / Low-Low) y semivariograma empírico.
-3. **Modelado con cuatro familias:** OLS, SAR (Spatial Autoregressive), Random Forest y XGBoost — todos con features espaciales explícitos (retardos de vecindario).
+3. **Modelado con cuatro familias:** OLS, SAR (Spatial Autoregressive), Random Forest y XGBoost, todos con features espaciales explícitos (retardos de vecindario).
 4. **Kriging Universal** como modelo geoestadístico de referencia con validación cruzada 10-fold.
 5. **Selección del modelo final** por RMSE, R² y ausencia de autocorrelación espacial en residuos.
 6. **App Shiny en producción** con predicción en tiempo real, mapa de comparables y experiencia sin fricciones para el usuario.
 
 ## Resultados
 
-| Modelo | RMSE (€/m²) | R² |
-|--------|-------------|----|
-| OLS | 907 | 0.43 |
-| XGBoost | 745 | 0.62 |
+| Modelo | RMSE (€/m²) | MAE (€/m²) | R² |
+|--------|-------------|------------|----|
+| OLS *(baseline)* | 907 | 674 | 0.43 |
+| **XGBoost + features espaciales** | **745** | **529** | **0.62** |
 
-*Nota: La métrica de error representa el precio por metro cuadrado. Conseguimos una reducción de más de 160 €/m² respecto al modelo lineal base, capturando exitosamente la no-linealidad de la componente espacial.*
+Evaluado sobre 5.229 viviendas que ningún modelo vio durante el entrenamiento. El error baja un **17,8 % en RMSE** y un **21,5 % en MAE**, y la varianza explicada pasa del 43 % al 62 %.
 
-Test I de Moran sobre residuos XGBoost: **-0.03** (sin autocorrelación espacial residual).
+### Qué significa esto en tasación
+
+La mediana del conjunto usado es una vivienda de 80 m² a 3.548 €/m², unos **284.000 €**. Traducido a esa vivienda tipo:
+
+| | OLS | XGBoost | |
+|---|---|---|---|
+| Error medio de tasación | 53.900 € | 42.300 € | **−11.600 €** |
+| Sobre el valor del inmueble | 19,0 % | 14,9 % | −4,1 pp |
+
+Once mil euros menos de error por tasación es la diferencia entre una cifra que es orientativa y una cifra sobre la que alguien puede negociar con fundamento.
+
+### Por qué es la decisión correcta
+
+El argumento de fondo no es el RMSE, sino **dónde** se equivoca cada modelo. El test de Moran sobre los residuos lo deja claro:
+
+| Residuos del modelo | I de Moran | p |
+|---|---|---|
+| OLS | 0.2095 | 0.0020 |
+| XGBoost | −0.0327 | 0.9980 |
+
+El OLS deja autocorrelación espacial significativa en sus errores. En una tasación automática eso NO es ruido aleatorio: es un **sesgo geográfico sistemático**. Un modelo así puede llegar a infravalorar barrios enteros y sobrevalorar otros de forma consistente, y al perjudicado le toca vivir siempre en el mismo sitio. Da igual que el error medio sea aceptable: está mal repartido.
+
+El modelo final no tiene ese problema: sus errores están geográficamente dispersos (I ≈ 0, p = 0.998). Se paga un precio por ello, porque un modelo no lineal es más difícil de interpretar que unos coeficientes de regresión, pero para un producto que le pone precio a la casa de alguien, que el error no dependa del barrio importa más que poder leer un coeficiente de regresión.
 
 ## Stack técnico
 
 - **Lenguaje:** R
-- **Econometría espacial:** `spdep`, `spatialreg`, `gstat`
+- **Econometría:** `spdep`, `spatialreg`, `gstat`
 - **ML:** `tidymodels`, `ranger`, `xgboost`
 - **Visualización:** `tmap`, `ggplot2`
 - **App:** `shiny`
@@ -120,15 +142,16 @@ Test I de Moran sobre residuos XGBoost: **-0.03** (sin autocorrelación espacial
 - El modelo fue entrenado con datos de un mercado y período concreto. Fuera de ese contexto geográfico o temporal, la predicción pierde fiabilidad.
 - La matriz de pesos espaciales del test set se construye con KNN interno, lo que introduce una aproximación respecto al entrenamiento.
 - El modelo no incorpora variables temporales ni ciclos de mercado inmobiliario.
+- En un futuro, se irá incluyendo información de más variables disponibles en el portal del ayuntamiento, así como actualizar los datos de los que se compone.
 
-## 🚀 Cómo ejecutar el proyecto en local
+## Cómo ejecutar el proyecto en local
 
 1. **Clona el repositorio**:
    ```bash
    git clone https://github.com/yeraybc/MadridDataHouse.git
    ```
 
-2. **Abre `MadridDataHouse.Rproj`** en RStudio. Es el paso importante: fija el directorio de trabajo en la raíz del proyecto, y todas las rutas de los scripts son relativas a ella.
+2. **Abre `MadridDataHouse.Rproj`** en RStudio. Conviene fijar el directorio de trabajo en la raíz del proyecto, y todas las rutas de los scripts son relativas a ella.
 
 3. **Prepara el entorno**:
    ```bash
@@ -136,7 +159,7 @@ Test I de Moran sobre residuos XGBoost: **-0.03** (sin autocorrelación espacial
    ```
    Comprueba la versión de R, verifica que GDAL/GEOS/PROJ estén disponibles (`sf` y `terra` los necesitan) e instala los paquetes de [requirements.txt](requirements.txt) que falten. No reinstala nada que ya cumpla la versión mínima.
 
-4. **Levanta la aplicación** — los artefactos que necesita vienen en el repositorio, así que esto funciona sobre un clon recién hecho:
+4. **Levanta la aplicación**: los artefactos que necesita vienen en el repositorio, por lo que esto funciona sobre un clon recién hecho:
    ```r
    shiny::runApp("apps/app_ml")        # app principal
    shiny::runApp("apps/app_kriging")   # visualización geoestadística
@@ -146,7 +169,7 @@ Test I de Moran sobre residuos XGBoost: **-0.03** (sin autocorrelación espacial
    ```bash
    Rscript R/run_all.R
    ```
-   Corre los seis scripts en orden, informa del tiempo de cada uno y se detiene en el primer error indicando qué paso falló. Tarda unos 30 minutos: el kriging y el tuning de RF/XGBoost son los tramos largos.
+   Corre los seis scripts en orden, informa del tiempo de cada uno y se detiene en el primer error indicando qué paso falló. Tarda unos 30 minutos: el kriging y el tuning de RF/XGBoost son las secciones más largas, debido al coste computacional.
 
 6. **Despliegue** (opcional):
    ```bash
@@ -154,14 +177,12 @@ Test I de Moran sobre residuos XGBoost: **-0.03** (sin autocorrelación espacial
    Rscript deploy.R              # publica ambas apps
    Rscript deploy.R app_ml       # publica solo una
    ```
-   [deploy.R](deploy.R) copia a `apps/<app>/data/` exactamente los artefactos que ese `app.R` carga y sube un bundle acotado a lo que la app usa de verdad.
-
-   > **Nota para el mantenedor:** el despliegue **actualiza** las apps ya publicadas en su misma URL. Eso depende de `apps/<app>/rsconnect/`, que está gitignorado y solo existe en la máquina desde la que se desplegó por primera vez. Si borras esa carpeta, el siguiente despliegue creará apps nuevas en URLs distintas en lugar de actualizar las existentes.
+   [deploy.R](deploy.R) copia a `apps/<app>/data/` los artefactos que ese `app.R` carga y sube un bundle acotado a lo que la app usa de verdad.
 
 ## Autor
 
 **Yeray Benito Calviño**
-Data Science — Universidad Complutense de Madrid
+Data Science student, Universidad Complutense de Madrid
 [LinkedIn](https://www.linkedin.com/in/yeraybenit0) · [GitHub](https://github.com/yeraybc)
 
 ## Licencia
