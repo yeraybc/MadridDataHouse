@@ -1,0 +1,14 @@
+# SHA-256 de los archivos de cartografía oficial del Geoportal del Ayuntamiento de Madrid.
+#
+# Estos son los ficheros verificados: con ellos el pipeline reproduce las métricas
+# publicadas en el README. R/01_preparacion_datos.R los comprueba tras descomprimir
+# o descargar, y avisa si el Geoportal ha servido datos distintos (por ejemplo, si
+# el Ayuntamiento redibuja un límite administrativo).
+#
+# Un aviso aquí no es un error: significa que los límites de barrios o distritos han
+# cambiado respecto a los usados en el análisis, y que los resultados pueden diferir.
+#
+# Formato:  <sha256>  <fichero>
+
+6c49a06637eaa30985da2c57ec2e9dd7d2768ab8a0d1abcb1fab00a3d46c89e0  Distritos.zip
+f7657fbdf81f3906686d9f2b7fab8658dfb8438494e50228fc0e61a9bf7ea892  Barrios.zip

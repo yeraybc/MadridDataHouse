@@ -1,4 +1,4 @@
-# 07_actualizacion_precios.R — Índices de Revalorización Espacial (2010 - 2026)
+# 05_actualizacion_precios.R
 
 library(dplyr)
 
@@ -6,11 +6,11 @@ library(dplyr)
 # El índice representa el multiplicador de crecimiento desde 2010
 indices_madrid <- data.frame(
   distrito = c(
-    "Salamanca", "Centro", "Chamberí", "Retiro", "Chamartín", 
-    "Tetuán", "Arganzuela", "Hortaleza", "Moncloa - Aravaca", 
-    "Fuencarral - El Pardo", "Ciudad Lineal", "Barajas", 
-    "San Blas - Canillejas", "Latina", "Moratalaz", "Carabanchel", 
-    "Usera", "Villa de Vallecas", "Vicálvaro", "Villaverde", 
+    "Salamanca", "Centro", "Chamberí", "Retiro", "Chamartín",
+    "Tetuán", "Arganzuela", "Hortaleza", "Moncloa - Aravaca",
+    "Fuencarral - El Pardo", "Ciudad Lineal", "Barajas",
+    "San Blas - Canillejas", "Latina", "Moratalaz", "Carabanchel",
+    "Usera", "Villa de Vallecas", "Vicálvaro", "Villaverde",
     "Puente de Vallecas"
   ),
   indice_revalorizacion = c(
@@ -24,5 +24,5 @@ indices_madrid <- data.frame(
 )
 
 # Guardar artefacto para uso en la aplicación Shiny
-ruta_salida <- "datos/indice_precios_actuales.rds"
+ruta_salida <- "data/processed/indice_precios_actuales.rds"
 saveRDS(indices_madrid, ruta_salida)
